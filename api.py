@@ -13,7 +13,7 @@ from google.appengine.api import taskqueue
 
 from models import User, Game, Score
 from models import StringMessage, NewGameForm, GameForm, MakeMoveForm,\
-    ScoreForms
+    ScoreForms, GameForms
 from utils import get_by_urlsafe
 
 NEW_GAME_REQUEST = endpoints.ResourceContainer(NewGameForm)
@@ -152,12 +152,27 @@ class BlackjackApi(remote.Service):
     @endpoints.method(response_message=StringMessage,
                       path='games/average_attempts',
                       name='get_average_scores_remaining',
-                      http_method='GET')
-    
+                      http_method='GET')   
     def get_average_scores(self, request):
         """Get the cached average moves remaining"""
         """ Motified """
         return StringMessage(message=memcache.get(MEMCACHE_SCORES_REMAINING) or '')
+
+    @endpoints.method(request_message=USER_REQUEST,
+                      response_message=GameForms,
+                      path='games/user/{user_name}',
+                      name='get_user_games',
+                      http_method='GET')
+    def get_user_games(self,request):
+        """Returns all active Users games"""
+        user = User.query(User.name == request.user_name).get()
+        if not user:
+            raise endpoints.NotFoundException(
+                    'A User with that name does not exist!')
+        games = Game.query(Game.user == user.key)
+        games = games.filter(Game.game_over == False)
+        ##.filter(Game.game_over == False).fetch()
+        return GameForms(items=[game.to_form("Hit or stand?") for game in games])   
 
     @staticmethod
     def _cache_average_user_scores():

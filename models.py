@@ -7,11 +7,7 @@ from datetime import date
 from protorpc import messages
 from google.appengine.ext import ndb
 
-"""
-class Move(messages.Enum):
-      HIT = "hit"
-      STAND = "stand"
-"""      
+    
 class User(ndb.Model):
     """User profile"""
     name = ndb.StringProperty(required=True)
@@ -148,26 +144,17 @@ class GameForm(messages.Message):
     message = messages.StringField(5, required=True)
     user_name = messages.StringField(6, required=True)
 
-
+class GameForms(messages.Message):
+      items = messages.MessageField(GameForm,1,repeated=True)
+      
 class NewGameForm(messages.Message):
     """Used to create a new game"""
     """ Modified """
     user_name = messages.StringField(1, required=True)
 
-
-
 class MakeMoveForm(messages.Message):
     hit_or_stand = messages.StringField(1, required=True)
 
-"""
-class HitMoveForm(messages.Message):
-
-      hit = messages.BooleanField(1,required=True)
-
-class StandMoveForm(messages.Message):
-      
-      stand = messages.BooleanField(1,required=True)
-"""
 class ScoreForm(messages.Message):
     """ScoreForm for outbound Score information"""
     """ Modified """

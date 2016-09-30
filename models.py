@@ -22,6 +22,7 @@ class Game(ndb.Model):
     game_over = ndb.BooleanProperty(required=True, default=False)
     user_score = ndb.IntegerProperty(required=True,default=0)
     house_score = ndb.IntegerProperty(required=True,default=0)
+    game_canceled = ndb.BooleanProperty(required=True, default=False)
     user = ndb.KeyProperty(required=True, kind='User')
 
     @classmethod
@@ -44,7 +45,8 @@ class Game(ndb.Model):
                     deck = deck,
                     user_score = 0,
                     house_score = 0,
-                    game_over=False)
+                    game_over=False,
+                    game_canceled=False)
         game.update_user_score()
         game.update_house_score()
         game.put()

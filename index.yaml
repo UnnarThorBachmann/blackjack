@@ -14,3 +14,24 @@ indexes:
   properties:
   - name: game_over
   - name: user
+
+- kind: Score
+  properties:
+  - name: hand_score
+  - name: numb_cards
+
+- kind: Score
+  properties:
+  - name: hand_score
+    direction: desc
+  - name: numb_cards
+    direction: desc
+
+- kind: Score
+  properties:
+  - name: result
+    direction: desc
+  - name: hand_score
+    direction: desc
+  - name: numb_cards
+    direction: desc

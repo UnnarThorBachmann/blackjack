@@ -16,6 +16,9 @@ from models import StringMessage, NewGameForm, GameForm, MakeMoveForm,\
     ScoreForms, GameForms
 from utils import get_by_urlsafe
 
+NUMBER_REQUEST = endpoints.ResourceContainer(
+    number_of_results = messages.IntegerField(1),)
+            
 NEW_GAME_REQUEST = endpoints.ResourceContainer(NewGameForm)
 GET_GAME_REQUEST = endpoints.ResourceContainer(
         urlsafe_game_key=messages.StringField(1),)
@@ -24,6 +27,10 @@ MAKE_MOVE_REQUEST = endpoints.ResourceContainer(
     urlsafe_game_key=messages.StringField(1),)
 USER_REQUEST = endpoints.ResourceContainer(user_name=messages.StringField(1),
                                            email=messages.StringField(2))
+CANCEL_REQUEST = endpoints.ResourceContainer(
+    urlsafe_game_key=messages.StringField(1),)
+RESUME_REQUEST = endpoints.ResourceContainer(
+    urlsafe_game_key=messages.StringField(1),)
 
 MEMCACHE_SCORES_REMAINING = 'SCORES_REMAINING'
 
@@ -86,9 +93,39 @@ class BlackjackApi(remote.Service):
         else:
             raise endpoints.NotFoundException('Game not found!')
 
+    @endpoints.method(request_message=CANCEL_REQUEST,
+                      response_message=GameForm,
+                      path='cancel/{urlsafe_game_key}',
+                      name='cancel_game',
+                      http_method='PUT')
+    def cancel_game(self, request):
+        """ Cancels a game. Returns a game state wit cancel message."""
+        game = get_by_urlsafe(request.urlsafe_game_key, Game)
+        if game.game_over:
+            return game.to_form('Game already over!')
+        
+        game.game_canceled = True
+        game.put()
+        return game.to_form('Game is canceled')
+    
+    @endpoints.method(request_message=RESUME_REQUEST,
+                      response_message=GameForm,
+                      path='resume/{urlsafe_game_key}',
+                      name='resume_game',
+                      http_method='PUT')
+    def resume_game(self, request):
+        """ Resumes a game. Returns a game state wit hit or stand message."""
+        game = get_by_urlsafe(request.urlsafe_game_key,Game)
+        if game.game_over:
+            return game.to_form('Game already over!')
+        
+        game.game_canceled = False
+        game.put()
+        return game.to_form('Hit or stand?')
+    
     @endpoints.method(request_message=MAKE_MOVE_REQUEST,
                       response_message=GameForm,
-                      path='game/{urlsafe_game_key}',
+                      path='move/{urlsafe_game_key}',
                       name='make_move',
                       http_method='PUT')
     def make_move(self, request):
@@ -96,11 +133,14 @@ class BlackjackApi(remote.Service):
         game = get_by_urlsafe(request.urlsafe_game_key, Game)
         if game.game_over:
             return game.to_form('Game already over!')
-
+        
+        if game.game_canceled:
+           return game.to_form('Game is canceled')
+        
         if request.hit_or_stand == 'hit':
            game.deal_to_user()
            game.update_user_score()
-
+           game.put()
            if game.user_score <= 21:
               return game.to_form('Hit or deal?')
            else:
@@ -134,7 +174,21 @@ class BlackjackApi(remote.Service):
         """Return all scores"""
         """ Motified """
         return ScoreForms(items=[score.to_form() for score in Score.query()])
-
+    
+    @endpoints.method(request_message=NUMBER_REQUEST,
+                      response_message=ScoreForms,
+                      path='get_high_scores',
+                      name='get_high_scores',
+                      http_method='GET')
+    def get_high_scores(self,request):
+        """ Returns highest scores. Ties broken with number of cards."""
+        scores = Score.query()
+        scores = scores.order(-Score.result)
+        scores = scores.order(-Score.hand_score)
+        scores = scores.order(-Score.numb_cards)
+        scores = scores.fetch(request.number_of_results)
+        return ScoreForms(items=[score.to_form() for score in scores])
+        
     @endpoints.method(request_message=USER_REQUEST,
                       response_message=ScoreForms,
                       path='scores/user/{user_name}',

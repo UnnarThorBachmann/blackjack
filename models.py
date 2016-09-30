@@ -11,7 +11,17 @@ from google.appengine.ext import ndb
 class User(ndb.Model):
     """User profile"""
     name = ndb.StringProperty(required=True)
-    email =ndb.StringProperty()
+    email = ndb.StringProperty()
+    n_games = ndb.FloatProperty(required = True,default = 0)
+    winning_ratio = ndb.FloatProperty(required = True, default = 0)
+    def to_form(self):
+        """Returns a UserForm representation of the User"""
+        form = UserForm()
+        form.user_name = self.name
+        form.winning_ratio = self.winning_ratio
+        form.n_games = self.n_games
+        return form
+    
 
 
 class Game(ndb.Model):
@@ -111,6 +121,17 @@ class Game(ndb.Model):
         """Ends the game - if won is True, the player won. - if won is False,
         the player lost."""
         """ Modified"""
+
+        # Updating the user score.
+        user = self.user.get()
+        n_games = user.n_games
+        winning_ratio = user.winning_ratio
+        winning_sum = n_games*winning_ratio
+        winning_sum += result
+        user.winning_ratio = winning_sum/(n_games + 1)
+        user.n_games += 1
+        user.put()
+
         self.game_over = True
         self.put()
         # Add the game to the score 'board'
@@ -171,6 +192,15 @@ class ScoreForms(messages.Message):
     """Return multiple ScoreForms"""
     items = messages.MessageField(ScoreForm, 1, repeated=True)
 
+class UserForm(messages.Message):
+      """ Returns a username, winning ratio and games"""
+      user_name = messages.StringField(1, required = True)
+      winning_ratio = messages.FloatField(2, required = True)
+      n_games = messages.FloatField(3, required = True)
+
+class UserForms(messages.Message):
+      """ Return multiple UserForm """
+      items = messages.MessageField(UserForm,1,repeated=True)
 
 class StringMessage(messages.Message):
     """StringMessage-- outbound (single) string message"""

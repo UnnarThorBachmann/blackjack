@@ -35,3 +35,10 @@ indexes:
     direction: desc
   - name: numb_cards
     direction: desc
+
+- kind: User
+  properties:
+  - name: winning_ratio
+    direction: desc
+  - name: n_games
+    direction: desc

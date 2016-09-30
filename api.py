@@ -13,7 +13,7 @@ from google.appengine.api import taskqueue
 
 from models import User, Game, Score
 from models import StringMessage, NewGameForm, GameForm, MakeMoveForm,\
-    ScoreForms, GameForms
+    ScoreForms, GameForms, UserForms
 from utils import get_by_urlsafe
 
 NUMBER_REQUEST = endpoints.ResourceContainer(
@@ -131,6 +131,7 @@ class BlackjackApi(remote.Service):
     def make_move(self, request):
         """Makes a move. Returns a game state with message"""
         game = get_by_urlsafe(request.urlsafe_game_key, Game)
+    
         if game.game_over:
             return game.to_form('Game already over!')
         
@@ -145,6 +146,7 @@ class BlackjackApi(remote.Service):
               return game.to_form('Hit or deal?')
            else:
                game.end_game(0.0)
+               
                return game.to_form('You are busted')
         else:
             while game.house_score <= 17:
@@ -203,6 +205,17 @@ class BlackjackApi(remote.Service):
         scores = Score.query(Score.user == user.key)
         return ScoreForms(items=[score.to_form() for score in scores])
 
+    @endpoints.method(response_message=UserForms,
+                      path='rankings',
+                      name='get_user_rankings',
+                      http_method='GET')
+    def get_user_rankings(self,request):
+        """ Returns players ranked by performance. """
+        users = User.query()
+        users = users.order(-User.winning_ratio)
+        users = users.order(-User.n_games)
+        return UserForms(items = [user.to_form() for user in users])
+        
     @endpoints.method(response_message=StringMessage,
                       path='games/average_attempts',
                       name='get_average_scores_remaining',
@@ -225,7 +238,6 @@ class BlackjackApi(remote.Service):
                     'A User with that name does not exist!')
         games = Game.query(Game.user == user.key)
         games = games.filter(Game.game_over == False)
-        ##.filter(Game.game_over == False).fetch()
         return GameForms(items=[game.to_form("Hit or stand?") for game in games])   
 
     @staticmethod

@@ -32,7 +32,9 @@ class Game(ndb.Model):
     game_over = ndb.BooleanProperty(required=True, default=False)
     user_score = ndb.IntegerProperty(required=True,default=0)
     house_score = ndb.IntegerProperty(required=True,default=0)
-    game_canceled = ndb.BooleanProperty(required=True, default=False)
+    canceled = ndb.BooleanProperty(required=True, default=False)
+    moves = ndb.StringProperty(repeated=True)
+    msgs = ndb.StringProperty(repeated=True)
     user = ndb.KeyProperty(required=True, kind='User')
 
     @classmethod
@@ -55,8 +57,10 @@ class Game(ndb.Model):
                     deck = deck,
                     user_score = 0,
                     house_score = 0,
-                    game_over=False,
-                    game_canceled=False)
+                    moves = [],
+                    msgs = [],
+                    game_over = False,
+                    canceled = False)
         game.update_user_score()
         game.update_house_score()
         game.put()
@@ -69,6 +73,7 @@ class Game(ndb.Model):
     def update_house_score(self):
         """ Update house score"""
         self.house_score = self.score_hand(self.house_hand)
+        
 
     def deal_to_user(self):
         """ deal a card to the user hand """
@@ -101,22 +106,6 @@ class Game(ndb.Model):
                 total_score += 10
         return total_score
         
-    
-    def to_form(self, message):
-        """Returns a GameForm representation of the Game"""
-        """ Modified """
-        form = GameForm()
-        form.urlsafe_key = self.key.urlsafe()
-        form.user_name = self.user.get().name
-        form.user_hand = ','.join(self.user_hand)
-        if self.game_over:
-           form.house_hand = ','.join(self.house_hand)
-        else:
-            form.house_hand = self.house_hand[0] + ',' + 'XX'
-        form.game_over = self.game_over
-        form.message = message
-        return form
-
     def end_game(self, result=0.5):
         """Ends the game - if won is True, the player won. - if won is False,
         the player lost."""
@@ -140,8 +129,80 @@ class Game(ndb.Model):
                       numb_cards = len(self.user_hand)
                       )
         score.put()
+        # Assert if moves list and messages list are of same length.
+            
+        
+    def to_form(self, message):
+        """Returns a GameForm representation of the Game"""
+        """ Modified """
+        form = GameForm()
+        form.urlsafe_key = self.key.urlsafe()
+        form.user_name = self.user.get().name
+        form.user_hand = ','.join(self.user_hand)
+        if self.game_over:
+           form.house_hand = ','.join(self.house_hand)
+        else:
+            form.house_hand = self.house_hand[0] + ',' + 'XX'
+        form.game_over = self.game_over
+        form.message = message
+        if len(self.msgs) != len(self.moves):
+           self.msgs.append(message)
+           
+        self.put()
+        print self.msgs
+        print self.moves
+        assert len(self.moves) == len(self.msgs)
+  
+        return form
+    
+    def to_history(self):
+        """ Returns a HistoryForm representation of the game hitory """
+        form = HistoryForm()
+        form.urlsafe_key = self.key.urlsafe()
+        form.player = self.user.get().name
+        if self.game_over:
+              
+           form.status = "Game is over"
+           form.results = "Undecided"
+        else:
+            if self.canceled:
+               form.status = "Game is canceled"
+            else: 
+                form.status = "Game is not over"
+            form.results = "undecided"
+            
+        form.moves = []
+        for i in range(len(self.moves)):
+            form.moves.append(MoveForm(move = self.moves[i], message=self.msgs[i]))
+            
+        form.user_hand_init = ','.join(self.user_hand[:2])
+        form.user_hand_end = ','.join(self.user_hand)
 
+        if self.game_over:
+           form.house_hand_init = ','.join(self.house_hand[:2])
+           form.house_hand_end = ','.join(self.house_hand)
+        else:
+            form.house_hand_init = self.house_hand[0] + ',' + 'XX'
+            form.house_hand_end = self.house_hand[0] + ',' + 'XX'
+        return form 
 
+class MoveForm(messages.Message):
+      """ Return for otubound Move information """
+      move = messages.StringField(1, required=True)
+      message = messages.StringField(2, required=True)
+      
+class HistoryForm(messages.Message):
+      """ HistoryForm for outbound History information """
+      urlsafe_key = messages.StringField(1, required=True)
+      player = messages.StringField(2, required=True)
+      status = messages.StringField(3, required=True)
+      results = messages.StringField(4, required=True)
+      moves = messages.MessageField(MoveForm, 5, repeated=True)
+      user_hand_init = messages.StringField(6, required=True)
+      house_hand_init = messages.StringField(7, required=True)
+      user_hand_end = messages.StringField(8, required=True)
+      house_hand_end = messages.StringField(9, required=True)
+      
 class Score(ndb.Model):
     """Score object"""
     """Modified"""
@@ -187,7 +248,7 @@ class ScoreForm(messages.Message):
     hand_score = messages.IntegerField(4,required=True)
     numb_cards = messages.IntegerField(5,required=True)
 
-
+      
 class ScoreForms(messages.Message):
     """Return multiple ScoreForms"""
     items = messages.MessageField(ScoreForm, 1, repeated=True)

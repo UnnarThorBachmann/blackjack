@@ -13,13 +13,14 @@ from google.appengine.api import taskqueue
 
 from models import User, Game, Score
 from models import StringMessage, NewGameForm, GameForm, MakeMoveForm,\
-    ScoreForms, GameForms, UserForms
+    ScoreForms, GameForms, UserForms, HistoryForm
 from utils import get_by_urlsafe
 
 NUMBER_REQUEST = endpoints.ResourceContainer(
     number_of_results = messages.IntegerField(1),)
             
 NEW_GAME_REQUEST = endpoints.ResourceContainer(NewGameForm)
+
 GET_GAME_REQUEST = endpoints.ResourceContainer(
         urlsafe_game_key=messages.StringField(1),)
 MAKE_MOVE_REQUEST = endpoints.ResourceContainer(
@@ -29,7 +30,11 @@ USER_REQUEST = endpoints.ResourceContainer(user_name=messages.StringField(1),
                                            email=messages.StringField(2))
 CANCEL_REQUEST = endpoints.ResourceContainer(
     urlsafe_game_key=messages.StringField(1),)
+
 RESUME_REQUEST = endpoints.ResourceContainer(
+    urlsafe_game_key=messages.StringField(1),)
+
+HISTORY_REQUEST = endpoints.ResourceContainer(
     urlsafe_game_key=messages.StringField(1),)
 
 MEMCACHE_SCORES_REMAINING = 'SCORES_REMAINING'
@@ -104,7 +109,7 @@ class BlackjackApi(remote.Service):
         if game.game_over:
             return game.to_form('Game already over!')
         
-        game.game_canceled = True
+        game.canceled = True
         game.put()
         return game.to_form('Game is canceled')
     
@@ -119,9 +124,18 @@ class BlackjackApi(remote.Service):
         if game.game_over:
             return game.to_form('Game already over!')
         
-        game.game_canceled = False
+        game.canceled = False
         game.put()
         return game.to_form('Hit or stand?')
+    @endpoints.method(request_message=HISTORY_REQUEST,
+                      response_message=HistoryForm,
+                      path='history/{urlsafe_game_key}',
+                      name='get_game_history',
+                      http_method='PUT')
+    def get_game_history(self, request):
+        """ Returns the history of a game"""
+        game = get_by_urlsafe(request.urlsafe_game_key,Game)
+        return game.to_history()
     
     @endpoints.method(request_message=MAKE_MOVE_REQUEST,
                       response_message=GameForm,
@@ -135,38 +149,42 @@ class BlackjackApi(remote.Service):
         if game.game_over:
             return game.to_form('Game already over!')
         
-        if game.game_canceled:
+        if game.canceled:
            return game.to_form('Game is canceled')
         
         if request.hit_or_stand == 'hit':
+           game.moves.append('hit')
            game.deal_to_user()
            game.update_user_score()
            game.put()
+           
            if game.user_score <= 21:
               return game.to_form('Hit or deal?')
            else:
                game.end_game(0.0)
-               
-               return game.to_form('You are busted')
+               return game.to_form('You are busted.')
         else:
-            while game.house_score <= 17:
+            game.moves.append('stand')
+            while game.house_score < 17:
                   game.deal_to_house()
                   game.update_house_score()
                   
             if game.house_score > 21:
                game.end_game(1.0)
-               return game.to_form("The house got busted.")
+               
+               return game.to_form('The house got busted.')
             
             elif game.user_score > game.house_score:
                  game.end_game(1.0)
-                 return game.to_form("You win!")
+                
+                 return game.to_form('You win')
                 
             elif game.user_score < game.house_score:
                  game.end_game(0.0)
-                 return game.to_form("You lose!")
+                 return game.to_form('You lose!')
             else:
                 game.end_game(0.5)
-                return game.to_form("Draw!")
+                return game.to_form('Draw!')
 
     @endpoints.method(response_message=ScoreForms,
                       path='scores',

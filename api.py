@@ -1,8 +1,16 @@
 # -*- coding: utf-8 -*-`
+"""
+This is a code modified by Unnar Thor Bachmann in Udacity full stack program.
+The project is to design a game from Guess a number. I modified the code to
+implement Blackjack. 
+"""
+
 """api.py - Create and configure the Game API exposing the resources.
 This can also contain game logic. For more complex games it would be wise to
 move game logic to another file. Ideally the API will be simple, concerned
 primarily with communication to/from the API's users."""
+
+
 
 
 import logging
@@ -17,6 +25,8 @@ from models import StringMessage, NewGameForm, GameForm, MakeMoveForm,\
     ScoreForms, GameForms, UserForms, HistoryForm
 from utils import get_by_urlsafe
 
+
+# Resource containers.
 NUMBER_REQUEST = endpoints.ResourceContainer(
     number_of_results = messages.IntegerField(1),)
             
@@ -50,7 +60,7 @@ class BlackjackApi(remote.Service):
                       http_method='POST')
     def create_user(self, request):
         """Create a User. Requires a unique username"""
-        """ Motified """
+       
         if User.query(User.name == request.user_name).get():
             raise endpoints.ConflictException(
                     'A User with that name already exists!')
@@ -66,7 +76,7 @@ class BlackjackApi(remote.Service):
                       http_method='POST')
     def new_game(self, request):
         """Creates new game """
-        """ Motified """
+        
         user = User.query(User.name == request.user_name).get()
         if not user:
             raise endpoints.NotFoundException(
@@ -144,7 +154,11 @@ class BlackjackApi(remote.Service):
                       name='make_move',
                       http_method='PUT')
     def make_move(self, request):
-        """Makes a move. Returns a game state with message"""
+        """ Makes a move. Returns a game state with message
+            User can either hit or stand. Hit is a request for
+            another card while stand is a request for no more cards
+            during the game.
+        """
         game = get_by_urlsafe(request.urlsafe_game_key, Game)
     
         if game.game_over:
@@ -158,23 +172,31 @@ class BlackjackApi(remote.Service):
            game.deal_to_user()
            game.update_user_score()
            game.put()
-           
+
+           # If the user gets busted it is an automatic loss.
            if game.user_score <= 21:
               return game.to_form('Hit or deal?')
            else:
                game.end_game(0.0)
                return game.to_form('You are busted.')
-        else:
+            
+        elif request.hit_or_stand == 'stand':
             game.moves.append('stand')
+            
+            # The house has the strategy of automatically
+            # request a card while the value of the hand is below 17.
             while game.house_score < 17:
                   game.deal_to_house()
                   game.update_house_score()
                   
+            # Check if the house is busted.
+            # If so the user wins.
+            # Else the higher scoring hand wins.
             if game.house_score > 21:
                game.end_game(1.0)
                
                return game.to_form('The house got busted.')
-            
+             
             elif game.user_score > game.house_score:
                  game.end_game(1.0)
                 
@@ -186,14 +208,17 @@ class BlackjackApi(remote.Service):
             else:
                 game.end_game(0.5)
                 return game.to_form('Draw!')
-
+        else:
+            # If the request is neither hit or stand the game state is returned
+            # with instructions on playing the game.
+            return game.to_form('Either hit or stand. No other moves available.')
     @endpoints.method(response_message=ScoreForms,
                       path='scores',
                       name='get_scores',
                       http_method='GET')
     def get_scores(self, request):
         """Return all scores"""
-        """ Motified """
+       
         return ScoreForms(items=[score.to_form() for score in Score.query()])
     
     @endpoints.method(request_message=NUMBER_REQUEST,
@@ -236,12 +261,11 @@ class BlackjackApi(remote.Service):
         return UserForms(items = [user.to_form() for user in users])
         
     @endpoints.method(response_message=StringMessage,
-                      path='games/average_attempts',
+                      path='games/average_scores',
                       name='get_average_scores_remaining',
                       http_method='GET')   
     def get_average_scores(self, request):
         """Get the cached average moves remaining"""
-        """ Motified """
         return StringMessage(message=memcache.get(MEMCACHE_SCORES_REMAINING) or '')
 
     @endpoints.method(request_message=USER_REQUEST,
@@ -258,30 +282,11 @@ class BlackjackApi(remote.Service):
         games = Game.query(Game.user == user.key)
         games = games.filter(Game.game_over == False)
         return GameForms(items=[game.to_form("Hit or stand?") for game in games])
-    """
-    @endpoints.method(response_message=GameForms,
-                      path='notifications',
-                      name='notifications',
-                      http_method='GET')
-    def notifications(self,request):
-        users = User.query(User.email != None)
-        d = datetime.now()
-        notifications = []
-        
-        for user in users:
-            games = Game.query(Game.user == user.key)
-            games = games.filter(Game.game_over == False)
-            
-            for game in games:
-                if (d-game.datetime).total_seconds() > 6:
-                    notifications.append(game)
-                    
-        return GameForms(items=[game.to_form("Hit or stand?") for game in notifications])
-    """
+    
     @staticmethod
     def _cache_average_user_scores():
         """Populates memcache with the average moves remaining of Games"""
-        """ Modified """
+        
         games = Game.query(Game.game_over == False).fetch()
         if games:
             count = len(games)

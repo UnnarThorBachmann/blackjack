@@ -11,14 +11,20 @@
  
  
 ##Game Description:
-Guess a number is a simple guessing game. Each game begins with a random 'target'
-number between the minimum and maximum values provided, and a maximum number of
-'attempts'. 'Guesses' are sent to the `make_move` endpoint which will reply
-with either: 'too low', 'too high', 'you win', or 'game over' (if the maximum
-number of attempts is reached).
-Many different Guess a Number games can be played by many different Users at any
-given time. Each game can be retrieved or played by using the path parameter
-`urlsafe_game_key`.
+
+Blackjack is a well known card game. A game begins with the user and the house 
+having two cards on their hands. The user can only view one card of the house. 
+He can either 'hit' or 'stand'. Upon choosing to 'hit' he gets another card while
+choosing to 'stand' is a request for no more cards. After the user stands it is the 
+house's chance to 'hit' or 'stand'. Both players can 'hit' as long as their score 
+is below or equal to 21. If the score exceeds 21 it is an automatic loss to either 
+player. 
+
+The hands are scored as a sum of the score of each card on hand. The jacks, queens and 
+kings are scored as 10, the aces as either 1 or 11 and other cards as their face value.
+
+
+Each game can be retrieved or played by using the path parameter `urlsafe_game_key`.
 
 ##Files Included:
  - api.py: Contains endpoints and game playing logic.
@@ -29,6 +35,13 @@ given time. Each game can be retrieved or played by using the path parameter
  - utils.py: Helper function for retrieving ndb.Models by urlsafe Key string.
 
 ##Endpoints Included:
+ - **cancel_game**
+   - Path: 'user'
+    - Method: PUT
+    - Parameters: urlsafe_game_key
+    - Returns: GameForm
+    - Description: Cancels a game. Returns a game state wit cancel message.
+
  - **create_user**
     - Path: 'user'
     - Method: POST
@@ -59,9 +72,19 @@ given time. Each game can be retrieved or played by using the path parameter
     - Method: PUT
     - Parameters: urlsafe_game_key, guess
     - Returns: GameForm with new game state.
-    - Description: Accepts a 'guess' and returns the updated state of the game.
-    If this causes a game to end, a corresponding Score entity will be created.
-    
+    - Description: Makes a move. Returns a game state with message. User can either hit or stand. Hit is a request for another card while stand is a request for no more cards during the game.
+ - **get_game_history**
+    - Path: 'move/{urlsafe_game_key}'
+    - Method: PUT
+    - Parameters: url_safe_key  
+    - Returns: HistoryForm
+    - Description: Returns the history of a game.
+ - **get_high_scores**
+    - Path: 'get_high_scores'
+    - Method: GET
+    - Parameters: number_of_results
+    - Returns: ScoreForms
+    - Description: Returns highest scores. Ties broken with number of cards.
  - **get_scores**
     - Path: 'scores'
     - Method: GET
@@ -84,6 +107,30 @@ given time. Each game can be retrieved or played by using the path parameter
     - Returns: StringMessage
     - Description: Gets the average number of attempts remaining for all games
     from a previously cached memcache key.
+- **get_average_scores**
+   - Path: games/average_scores
+   - Method: GET
+   - Parameters: None
+   - Returns: StringMessage
+   - Description:Get the cached average moves remaining. 
+- **get_user_games**
+   - Path: 'games/user/{user_name}'
+   - Method: GET
+   - Parameters: user_name
+   - Returns: GameForms
+   - Description: Returns all active Users games.
+- **get_user_rankings**
+   - Path: 'games/average_attempts'
+   - Method: GET
+   - Parameters: None
+   - Returns: UserForms
+   - Description: Returns players ranked by performance.
+- **resume_game**
+   - Path: 'resume/{urlsafe_game_key}'
+   - Method: PUT
+   - Parameters: urlsafe_game_key
+   - Returns: GameForm
+   - Description: Resumes a game. Returns a game state wit hit or stand message.
 
 ##Models Included:
  - **User**
@@ -97,16 +144,24 @@ given time. Each game can be retrieved or played by using the path parameter
     
 ##Forms Included:
  - **GameForm**
-    - Representation of a Game's state (urlsafe_key, attempts_remaining,
+    - Representation of a Game's state (urlsafe_key, user_hand, house_hand, game_over flag, message)
     game_over flag, message, user_name).
+ - **HistoryForm**
+    - Representation of a Game's history (urlsafe_key, player, status, results, moves, user_hand_init house_hand_init, user_hand_end, house_hand_end)
  - **NewGameForm**
-    - Used to create a new game (user_name, min, max, attempts)
+    - Used to create a new game (user_name)
  - **MakeMoveForm**
-    - Inbound make move form (guess).
+    - Inbound make move form (hit_or_stand).
+ - **MoveForm**
+    - Used to represent a move (move, message)
  - **ScoreForm**
-    - Representation of a completed game's Score (user_name, date, won flag,
+    - Representation of a completed game's Score (user_name, date, result (0, 1/2 or 1), hand_score and numb_cards)
     guesses).
  - **ScoreForms**
     - Multiple ScoreForm container.
  - **StringMessage**
     - General purpose String container.
+ - ** UserForm **
+    - Represents a user (user_name, winning_ratio, n_games)
+ - ** UserForms **
+    - Multiple UserForm container.

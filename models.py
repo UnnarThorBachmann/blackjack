@@ -1,7 +1,15 @@
+j"""
+This is a code modified by Unnar Thor Bachmann in Udacity full stack program.
+The project is to design a game from Guess a number. I modified the code to
+implement Blackjack. 
+"""
+
 """models.py - This file contains the class definitions for the Datastore
 entities used by the Game. Because these classes are also regular Python
 classes they can include methods (such as 'to_form' and 'new_game')."""
-""" Modified by Unnar Thor Bachmann to play blackjack"""
+
+
+
 import random
 from datetime import date, datetime
 from protorpc import messages
@@ -30,13 +38,15 @@ class Game(ndb.Model):
     house_hand = ndb.StringProperty(repeated=True)
     deck = ndb.StringProperty(repeated=True)
     game_over = ndb.BooleanProperty(required=True, default=False)
-    user_score = ndb.IntegerProperty(required=True,default=0)
-    house_score = ndb.IntegerProperty(required=True,default=0)
+    user_score = ndb.IntegerProperty(required=True, default=0)
+    house_score = ndb.IntegerProperty(required=True, default=0)
     canceled = ndb.BooleanProperty(required=True, default=False)
     moves = ndb.StringProperty(repeated=True)
     msgs = ndb.StringProperty(repeated=True)
     user = ndb.KeyProperty(required=True, kind='User')
-    datetime = ndb.DateTimeProperty(required = True)
+    # Datetime added to handle cron jobs.
+    datetime = ndb.DateTimeProperty(required=True)
+    result = ndb.StringProperty(required=True)
 
     @classmethod
     def new_game(cls, user):
@@ -47,8 +57,11 @@ class Game(ndb.Model):
         diamonds = ['D2', 'D3', 'D4','D5','D6','D7','D8','D9','D10', 'DJack', 'DQueen', 'DKing', 'DAce']
         clubs = ['C2', 'C3', 'C4','C5','C6','C7','C8','C9','C10', 'CJack', 'CQueen', 'CKing', 'CAce']
         deck = hearts + spades + diamonds + clubs
+        # Each time a game is created it gets a randomly shuffled deck.
         random.shuffle(deck)
 
+        # The user gets the first two cards and the house another two
+        # The rest of the deck is for dealing.
         user_hand = deck[:2]
         house_hand = deck[2:4]
         deck = deck[4:]
@@ -62,7 +75,8 @@ class Game(ndb.Model):
                     msgs = [],
                     game_over = False,
                     canceled = False,
-                    datetime = datetime.now())
+                    datetime = datetime.now(),
+                    result = 'Undecided')
         game.update_user_score()
         game.update_house_score()
         game.put()
@@ -88,9 +102,16 @@ class Game(ndb.Model):
         self.deck = self.deck[1:]
         
     def score_hand(self,hand):
-        """ Methods wich scores hands """
+        """ Methods which scores hands 
+        Jacks, queens and kings count as 10.
+        Aces count as either 1 or 11.
+        Other cards count as their face value.
+        A hand is a sum of its cards.
+        Returns the highest score-below 21 if possible.
+        """
         total_score  = 0
         n_aces = 0
+        # Initial counting. Count aces as 1.
         for card in hand:
             score = card[1:]
             if score.isdigit():
@@ -100,7 +121,8 @@ class Game(ndb.Model):
             else:
                 total_score += 1
                 n_aces += 1
-
+                
+        # While hand is below or equal to 21 add 10 for each ace.
         for i in range(n_aces):
             if 21-total_score < 10:
                break
@@ -113,7 +135,7 @@ class Game(ndb.Model):
         the player lost."""
         """ Modified"""
 
-        # Updating the user score.
+        # Update the winning ratio and total of games played.
         user = self.user.get()
         n_games = user.n_games
         winning_ratio = user.winning_ratio
@@ -124,7 +146,9 @@ class Game(ndb.Model):
         user.put()
 
         self.game_over = True
+        self.result = str(result)
         self.put()
+        
         # Add the game to the score 'board'
         score = Score(user=self.user, date=date.today(), result=result,
                       hand_score=self.score_hand(self.user_hand),
@@ -136,11 +160,13 @@ class Game(ndb.Model):
         
     def to_form(self, message):
         """Returns a GameForm representation of the Game"""
-        """ Modified """
+        
         form = GameForm()
         form.urlsafe_key = self.key.urlsafe()
         form.user_name = self.user.get().name
         form.user_hand = ','.join(self.user_hand)
+        # Displaying the house hand depending on the game status
+        # Not displaying the second if game is still on.
         if self.game_over:
            form.house_hand = ','.join(self.house_hand)
         else:
@@ -162,24 +188,25 @@ class Game(ndb.Model):
         form = HistoryForm()
         form.urlsafe_key = self.key.urlsafe()
         form.player = self.user.get().name
-        if self.game_over:
-              
-           form.status = "Game is over"
-           form.results = "Undecided"
+        if self.game_over:             
+           form.status = "Game is over"     
         else:
             if self.canceled:
                form.status = "Game is canceled"
             else: 
                 form.status = "Game is not over"
-            form.results = "undecided"
+                
+        form.results = self.result
             
         form.moves = []
+        # Each move stored in a MoveFom resource container.
         for i in range(len(self.moves)):
             form.moves.append(MoveForm(move = self.moves[i], message=self.msgs[i]))
             
         form.user_hand_init = ','.join(self.user_hand[:2])
         form.user_hand_end = ','.join(self.user_hand)
 
+        # House hand not displayed fully if the game is still on.
         if self.game_over:
            form.house_hand_init = ','.join(self.house_hand[:2])
            form.house_hand_end = ','.join(self.house_hand)

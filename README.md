@@ -18,7 +18,9 @@ He can either 'hit' or 'stand'. Upon choosing to 'hit' he gets another card whil
 choosing to 'stand' is a request for no more cards. After the user stands it is the 
 house's chance to 'hit' or 'stand'. Both players can 'hit' as long as their score 
 is below or equal to 21. If the score exceeds 21 it is an automatic loss to either 
-player. 
+player. If neither score is above 21 then the higher scoring hand wins. Equal score results in a draw.
+
+A simple AI agent plays for the house. It simply hits while the score of the hand is below 17.
 
 The hands are scored as a sum of the score of each card on hand. The jacks, queens and 
 kings are scored as 10, the aces as either 1 or 11 and other cards as their face value.
@@ -141,13 +143,13 @@ Each game can be retrieved or played by using the path parameter `urlsafe_game_k
 
 ##Models Included:
  - **User**
-    - Stores unique user_name and (optional) email address.
+    - Stores unique user_name, winning_ratio, number of games (n_games) and (optional) email address. Users are ranked by winning ration. Ties broken by number of games. 
     
  - **Game**
     - Stores unique game states. Associated with User model via KeyProperty.
     
  - **Score**
-    - Records completed games. Associated with Users model via KeyProperty.
+    - Records results from each game. A game can be won (1.0), drawn (0.5) or lost (0.0). Ties broken with number of cards. Associated with Users model via KeyProperty.
     
 ##Forms Included:
  - **GameForm**

@@ -6,6 +6,7 @@ primarily with communication to/from the API's users."""
 
 
 import logging
+from datetime import datetime
 import endpoints
 from protorpc import remote, messages
 from google.appengine.api import memcache
@@ -256,8 +257,27 @@ class BlackjackApi(remote.Service):
                     'A User with that name does not exist!')
         games = Game.query(Game.user == user.key)
         games = games.filter(Game.game_over == False)
-        return GameForms(items=[game.to_form("Hit or stand?") for game in games])   
-
+        return GameForms(items=[game.to_form("Hit or stand?") for game in games])
+    """
+    @endpoints.method(response_message=GameForms,
+                      path='notifications',
+                      name='notifications',
+                      http_method='GET')
+    def notifications(self,request):
+        users = User.query(User.email != None)
+        d = datetime.now()
+        notifications = []
+        
+        for user in users:
+            games = Game.query(Game.user == user.key)
+            games = games.filter(Game.game_over == False)
+            
+            for game in games:
+                if (d-game.datetime).total_seconds() > 6:
+                    notifications.append(game)
+                    
+        return GameForms(items=[game.to_form("Hit or stand?") for game in notifications])
+    """
     @staticmethod
     def _cache_average_user_scores():
         """Populates memcache with the average moves remaining of Games"""
@@ -270,6 +290,6 @@ class BlackjackApi(remote.Service):
             average = float(total_scores_remaining)/count
             memcache.set(MEMCACHE_SCORES_REMAINING,
                          'The average moves remaining is {:.2f}'.format(average))
-
+     
 
 api = endpoints.api_server([BlackjackApi])

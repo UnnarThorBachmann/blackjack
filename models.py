@@ -3,7 +3,7 @@ entities used by the Game. Because these classes are also regular Python
 classes they can include methods (such as 'to_form' and 'new_game')."""
 """ Modified by Unnar Thor Bachmann to play blackjack"""
 import random
-from datetime import date
+from datetime import date, datetime
 from protorpc import messages
 from google.appengine.ext import ndb
 
@@ -36,6 +36,7 @@ class Game(ndb.Model):
     moves = ndb.StringProperty(repeated=True)
     msgs = ndb.StringProperty(repeated=True)
     user = ndb.KeyProperty(required=True, kind='User')
+    datetime = ndb.DateTimeProperty(required = True)
 
     @classmethod
     def new_game(cls, user):
@@ -60,7 +61,8 @@ class Game(ndb.Model):
                     moves = [],
                     msgs = [],
                     game_over = False,
-                    canceled = False)
+                    canceled = False,
+                    datetime = datetime.now())
         game.update_user_score()
         game.update_house_score()
         game.put()

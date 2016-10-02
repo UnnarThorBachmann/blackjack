@@ -73,18 +73,21 @@ Each game can be retrieved or played by using the path parameter `urlsafe_game_k
     - Parameters: urlsafe_game_key, guess
     - Returns: GameForm with new game state.
     - Description: Makes a move. Returns a game state with message. User can either hit or stand. Hit is a request for another card while stand is a request for no more cards during the game.
+
  - **get_game_history**
     - Path: 'move/{urlsafe_game_key}'
     - Method: PUT
     - Parameters: url_safe_key  
     - Returns: HistoryForm
     - Description: Returns the history of a game.
+
  - **get_high_scores**
     - Path: 'get_high_scores'
     - Method: GET
     - Parameters: number_of_results
     - Returns: ScoreForms
     - Description: Returns highest scores. Ties broken with number of cards.
+
  - **get_scores**
     - Path: 'scores'
     - Method: GET
@@ -107,24 +110,28 @@ Each game can be retrieved or played by using the path parameter `urlsafe_game_k
     - Returns: StringMessage
     - Description: Gets the average number of attempts remaining for all games
     from a previously cached memcache key.
+
 - **get_average_scores**
    - Path: games/average_scores
    - Method: GET
    - Parameters: None
    - Returns: StringMessage
    - Description:Get the cached average moves remaining. 
+
 - **get_user_games**
    - Path: 'games/user/{user_name}'
    - Method: GET
    - Parameters: user_name
    - Returns: GameForms
    - Description: Returns all active Users games.
+
 - **get_user_rankings**
    - Path: 'games/average_attempts'
    - Method: GET
    - Parameters: None
    - Returns: UserForms
    - Description: Returns players ranked by performance.
+   
 - **resume_game**
    - Path: 'resume/{urlsafe_game_key}'
    - Method: PUT

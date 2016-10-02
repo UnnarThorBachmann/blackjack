@@ -131,7 +131,7 @@ Each game can be retrieved or played by using the path parameter `urlsafe_game_k
    - Parameters: None
    - Returns: UserForms
    - Description: Returns players ranked by performance.
-   
+
 - **resume_game**
    - Path: 'resume/{urlsafe_game_key}'
    - Method: PUT
@@ -168,7 +168,7 @@ Each game can be retrieved or played by using the path parameter `urlsafe_game_k
     - Multiple ScoreForm container.
  - **StringMessage**
     - General purpose String container.
- - ** UserForm **
+ - **UserForm**
     - Represents a user (user_name, winning_ratio, n_games)
- - ** UserForms **
+ - **UserForms**
     - Multiple UserForm container.

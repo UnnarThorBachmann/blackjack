@@ -1,4 +1,4 @@
-j"""
+"""
 This is a code modified by Unnar Thor Bachmann in Udacity full stack program.
 The project is to design a game from Guess a number. I modified the code to
 implement Blackjack. 

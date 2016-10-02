@@ -1,0 +1,49 @@
+What additional properties did you add to your models and why?
+
+Answer: 
+
+Properties added to the models were the following.
+
+a) User: 
+   1. Winning ratio and counter for number of games. I decided to rank players by their winning ratio and break ties by number of games, since more games give more credibility to the winning ratio.
+
+   I did also add a method to_form to enable each user to be represented and ranked.
+
+b) Game:
+   1. user_hand: A list representing the user hand.
+   2. house_hand: A list representing the house hand.
+   3. user_score: The score of the user hand.
+   4. house_score: The score of the house.
+   5. canceled: Flag representing a canceled game.
+   6. deck: A list representing the deck.
+
+   All these properties are to represent the game state suitable for Blackjack.
+
+   7. moves: A list of moves made by the user. Each move is either 'hit' or 'stand'.
+   8. msgs: A list of messages following each move: 'You win.', 'You lose.', 'You are busted.', 'Draw.', 'The house is busted.' and 'Hit or deal?'.
+
+   Both properties are for record keeping to enable viewing of each game afterwards.
+
+   9. datetime: An object of type DateTime to represent the time a game was created.
+
+   This is to keep track of the age of unfinished games. A user with an unfinished game older than one day will receive an email every 12 hours.
+
+   10. result: Float representing 0, 0.5 or 1 depending on the results of each game. Game can be won, lost or drawn.
+
+
+c) Score: 
+
+   1. result: (See Game properties above.)
+   2. hand_score: Score of the users hand.
+   3. numb_cards: Number of cards on user hands.
+
+   Each Score is depends on results, hand_score and if necessary ties are broken by number of cards. Giving the benefit to risk takers. 
+
+What were some of the trade-offs or struggles you faced when implementing the new game logic?
+
+Answer: I found it not very hard to modify the Guess the number game as Blackjack. The most time was spent learning the game old game logic and select methods and modify models to make the code suitable for Blackjack. 
+
+Learning the old game logic: All endpoints methods added used either HTTP-methods GET or PUT. Mainly GET for rendering models or part of models as a form (endpoint) and PUT when updating the Cloud Data Store. They all in the api.py file. All other methods were either class method or an instance method belonging to a model (most of them belonging to the Game class) in models.py. When I figured this out working this project was mainly about sustaining a clever design. The most difficult method I wrote was the method of scoring the hands. The fact that it should belong to the Game class made it easier to focus on the task.
+
+
+Selecting models and modifying methods: Working with Google App Engine can be tedious. You can save a lot of time by thinking ahead. Once you add a property to a model and modify methods (for example when I added in instance of DateTime) you can have errors in other methods. Multiple times I had to empty the local data store. When selecting a property I tried to let the Data Store property classes guide me. I did not have to add a model since the App Engine Data Store could handle data such as the deck etc. 

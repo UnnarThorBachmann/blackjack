@@ -25,8 +25,9 @@ A simple AI agent plays for the house. It simply hits while the score of the han
 The hands are scored as a sum of the score of each card on hand. The jacks, queens and 
 kings are scored as 10, the aces as either 1 or 11 and other cards as their face value.
 
-
 Each game can be retrieved or played by using the path parameter `urlsafe_game_key`.
+
+Players are ranked by winning ratio and ties broken by number of games.
 
 ##Files Included:
  - api.py: Contains endpoints and game playing logic.
@@ -42,7 +43,8 @@ Each game can be retrieved or played by using the path parameter `urlsafe_game_k
     - Method: PUT
     - Parameters: urlsafe_game_key
     - Returns: GameForm
-    - Description: Cancels a game. Returns a game state wit cancel message.
+    - Description: Cancels a game. Returns a game state wit cancel message. 
+    Will raise a ForbiddenException if the game is over.
 
  - **create_user**
     - Path: 'user'
@@ -51,16 +53,6 @@ Each game can be retrieved or played by using the path parameter `urlsafe_game_k
     - Returns: Message confirming creation of the User.
     - Description: Creates a new User. user_name provided must be unique. Will 
     raise a ConflictException if a User with that user_name already exists.
-    
- - **new_game**
-    - Path: 'game'
-    - Method: POST
-    - Parameters: user_name, min, max, attempts
-    - Returns: GameForm with initial game state.
-    - Description: Creates a new Game. user_name provided must correspond to an
-    existing user - will raise a NotFoundException if not. Min must be less than
-    max. Also adds a task to a task queue to update the average moves remaining
-    for active games.
      
  - **get_game**
     - Path: 'game/{urlsafe_game_key}'
@@ -69,16 +61,9 @@ Each game can be retrieved or played by using the path parameter `urlsafe_game_k
     - Returns: GameForm with current game state.
     - Description: Returns the current state of a game.
     
- - **make_move**
-    - Path: 'game/{urlsafe_game_key}'
-    - Method: PUT
-    - Parameters: urlsafe_game_key, guess
-    - Returns: GameForm with new game state.
-    - Description: Makes a move. Returns a game state with message. User can either hit or stand. Hit is a request for another card while stand is a request for no more cards during the game.
-
  - **get_game_history**
     - Path: 'move/{urlsafe_game_key}'
-    - Method: PUT
+    - Method: GET
     - Parameters: url_safe_key  
     - Returns: HistoryForm
     - Description: Returns the history of a game.
@@ -134,12 +119,30 @@ Each game can be retrieved or played by using the path parameter `urlsafe_game_k
    - Returns: UserForms
    - Description: Returns players ranked by performance.
 
+- **make_move**
+    - Path: 'game/{urlsafe_game_key}'
+    - Method: PUT
+    - Parameters: urlsafe_game_key, guess
+    - Returns: GameForm with new game state.
+    - Description: Makes a move. Returns a game state with message. User can either hit or stand. Hit is a request for another card while stand is a request for no more cards during the game. Will raise a ForbiddenException if the game is over or canceled.
+    
+- **new_game**
+    - Path: 'game'
+    - Method: POST
+    - Parameters: user_name, min, max, attempts
+    - Returns: GameForm with initial game state.
+    - Description: Creates a new Game. user_name provided must correspond to an
+    existing user - will raise a NotFoundException if not. Min must be less than
+    max. Also adds a task to a task queue to update the average moves remaining
+    for active games.
+
 - **resume_game**
    - Path: 'resume/{urlsafe_game_key}'
    - Method: PUT
    - Parameters: urlsafe_game_key
    - Returns: GameForm
-   - Description: Resumes a game. Returns a game state wit hit or stand message.
+   - Description: Resumes a canceled game to a normal game state.
+   Will raise a ForbiddenException if the game is over.
 
 ##Models Included:
  - **User**

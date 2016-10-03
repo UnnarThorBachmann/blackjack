@@ -66,17 +66,17 @@ class Game(ndb.Model):
         house_hand = deck[2:4]
         deck = deck[4:]
         game = Game(user=user,
-                    user_hand = user_hand,
-                    house_hand = house_hand,
-                    deck = deck,
-                    user_score = 0,
-                    house_score = 0,
-                    moves = [],
-                    msgs = [],
-                    game_over = False,
-                    canceled = False,
-                    datetime = datetime.now(),
-                    result = 'Undecided')
+            user_hand = user_hand,
+            house_hand = house_hand,
+            deck = deck,
+            user_score = 0,
+            house_score = 0,
+            moves = [],
+            msgs = [],
+            game_over = False,
+            canceled = False,
+            datetime = datetime.now(),
+            result = 'Undecided')
         game.update_user_score()
         game.update_house_score()
         game.put()
@@ -115,9 +115,9 @@ class Game(ndb.Model):
         for card in hand:
             score = card[1:]
             if score.isdigit():
-               total_score += int(score)
+                total_score += int(score)
             elif score == 'Jack' or score == 'Queen' or score == "King":
-                 total_score += 10
+                total_score += 10
             else:
                 total_score += 1
                 n_aces += 1
@@ -125,7 +125,7 @@ class Game(ndb.Model):
         # While hand is below or equal to 21 add 10 for each ace.
         for i in range(n_aces):
             if 21-total_score < 10:
-               break
+                break
             else:
                 total_score += 10
         return total_score
@@ -150,10 +150,10 @@ class Game(ndb.Model):
         self.put()
         
         # Add the game to the score 'board'
-        score = Score(user=self.user, date=date.today(), result=result,
-                      hand_score=self.score_hand(self.user_hand),
-                      numb_cards = len(self.user_hand)
-                      )
+        score = Score(user=self.user, date=date.today(), 
+            result=result,
+            hand_score=self.score_hand(self.user_hand),
+            numb_cards = len(self.user_hand))
         score.put()
         # Assert if moves list and messages list are of same length.
             
@@ -168,13 +168,13 @@ class Game(ndb.Model):
         # Displaying the house hand depending on the game status
         # Not displaying the second if game is still on.
         if self.game_over:
-           form.house_hand = ','.join(self.house_hand)
+            form.house_hand = ','.join(self.house_hand)
         else:
             form.house_hand = self.house_hand[0] + ',' + 'XX'
         form.game_over = self.game_over
         form.message = message
         if len(self.msgs) != len(self.moves):
-           self.msgs.append(message)
+            self.msgs.append(message)
            
         self.put()
         print self.msgs
@@ -189,10 +189,10 @@ class Game(ndb.Model):
         form.urlsafe_key = self.key.urlsafe()
         form.player = self.user.get().name
         if self.game_over:             
-           form.status = "Game is over"     
+            form.status = "Game is over"     
         else:
             if self.canceled:
-               form.status = "Game is canceled"
+                form.status = "Game is canceled"
             else: 
                 form.status = "Game is not over"
                 
@@ -208,8 +208,8 @@ class Game(ndb.Model):
 
         # House hand not displayed fully if the game is still on.
         if self.game_over:
-           form.house_hand_init = ','.join(self.house_hand[:2])
-           form.house_hand_end = ','.join(self.house_hand)
+            form.house_hand_init = ','.join(self.house_hand[:2])
+            form.house_hand_end = ','.join(self.house_hand)
         else:
             form.house_hand_init = self.house_hand[0] + ',' + 'XX'
             form.house_hand_end = self.house_hand[0] + ',' + 'XX'
@@ -242,9 +242,10 @@ class Score(ndb.Model):
     numb_cards = ndb.IntegerProperty(required=True)
 
     def to_form(self):
-        return ScoreForm(user_name=self.user.get().name, result=self.result,
-                         date=str(self.date), hand_score = self.hand_score,
-                         numb_cards = self.numb_cards)
+        return ScoreForm(user_name=self.user.get().name, 
+            result=self.result,
+            date=str(self.date), hand_score = self.hand_score,
+            numb_cards = self.numb_cards)
 
 
 class GameForm(messages.Message):

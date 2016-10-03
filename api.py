@@ -164,7 +164,7 @@ class BlackjackApi(remote.Service):
         if game.game_over:
         	raise endpoints.ForbiddenException('Game is already over.')
         
-        if game.game_over:
+        if game.canceled:
         	raise endpoints.ForbiddenException('Game is canceled.') 
         
         if request.hit_or_stand == 'hit':
